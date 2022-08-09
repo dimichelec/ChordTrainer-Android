@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ChordTrainer</string>
+    <string name="textview">TextView</string>
+    <string name="chord_diagram">Chord diagram</string>
+</resources>
