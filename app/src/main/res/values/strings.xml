@@ -2,4 +2,10 @@
     <string name="app_name">ChordTrainer</string>
     <string name="textview">TextView</string>
     <string name="chord_diagram">Chord diagram</string>
+    <string name="time_zero">0:00:00</string>
+    <string name="beat_one">1.1</string>
+    <string name="beat_format">%1$d.%2$d</string>
+    <string name="bpm_format">%1$d BPM</string>
+    <string name="default_bpm">90 BPM</string>
+    <string name="chord_title_format">%1$s%2$s -%3$d</string>
 </resources>

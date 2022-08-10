@@ -1,6 +1,5 @@
 package com.slappyapps.chordtrainer
 
-import android.graphics.Rect
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
@@ -8,14 +7,14 @@ import android.os.Looper
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
-import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.slider.Slider
 
 
@@ -34,18 +33,11 @@ class MainActivity : AppCompatActivity() {
     private var skipChordFlag = false
     private lateinit var metronomeClickA: MediaPlayer
     private lateinit var metronomeClickB: MediaPlayer
-    private var bpm = 90f
+    private var bpm = 90
 
     private lateinit var metronomeHandler: Handler
     private lateinit var clockHandler: Handler
 
-    companion object {
-        private val CHART_KEY = "CHART_KEY"
-        private val CHARTIDX_KEY = "CHARTIDX_KEY"
-        private val BEAT_KEY = "BEAT_KEY"
-        private val MEASURE_KEY = "MEASURE_KEY"
-        private val TIME_KEY = "TIME_KEY"
-    }
 
     interface GestureInterface {
         fun setOnScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float)
@@ -75,6 +67,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+    private companion object {
+        const val CHART_KEY = "CHART_KEY"
+        const val CHART_IDX_KEY = "CHART_IDX_KEY"
+        const val BEAT_KEY = "BEAT_KEY"
+        const val MEASURE_KEY = "MEASURE_KEY"
+        const val TIME_KEY = "TIME_KEY"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -82,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         if(savedInstanceState != null) {
             metronomeOn = false
             chart = savedInstanceState.getInt(CHART_KEY)
-            chartIdx = savedInstanceState.getInt(CHARTIDX_KEY)
+            chartIdx = savedInstanceState.getInt(CHART_IDX_KEY)
             beat = savedInstanceState.getInt(BEAT_KEY)
             measure = savedInstanceState.getInt(MEASURE_KEY)
             time = savedInstanceState.getInt(TIME_KEY)
@@ -110,10 +111,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.bChartLeft).setOnClickListener { prevChart() }
         findViewById<Button>(R.id.bChartRight).setOnClickListener { nextChart() }
 
+
+        // ----------------------------------------------------------------------------
+        // implement touchable tvChordList
+
         val mGestureDetector = GestureDetector(this, MyGestureDetector(object : GestureInterface {
             override fun setOnScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float) {
                 //handle the scroll
-                Log.d("test","scroll $distanceX x $distanceY")
+                //Log.d("test","scroll $distanceX x $distanceY")
             }
             override fun onClick(e: MotionEvent) {
                 //handle the single click
@@ -127,16 +132,18 @@ class MainActivity : AppCompatActivity() {
                     sum += widths[j]
                     j += 1
                 }
-                val tokens = txt.substring(0,j).split("[ |]+".toRegex())
-                val count = tokens.count()
-                if(count > 1)
-                    for(i in 1 until count)
-                        getNextChord()
+                val tokens = txt.substring(0,j).split("[ |]+".toRegex()).size
+                if(tokens > 1)
+                    for(k in 2..tokens) getNextChord()
             }
         }))
 
-        findViewById<TextView>(R.id.tvChordList).setOnTouchListener { _, event ->
-            mGestureDetector.onTouchEvent(event)}
+        findViewById<View>(R.id.tvChordList).setOnTouchListener { v, event ->
+            v.performClick()
+            mGestureDetector.onTouchEvent(event)
+        }
+
+        // ----------------------------------------------------------------------------
 
         findViewById<Button>(R.id.swMetronome).setOnClickListener { metronomePlay() }
         findViewById<Slider>(R.id.slBPM).addOnChangeListener { _, value, _ ->
@@ -150,7 +157,7 @@ class MainActivity : AppCompatActivity() {
                 cdDiagram.diagram("C", "M7", 0)
                 initChart()
             } else {
-                findViewById<Switch>(R.id.swMetronome).isChecked = false
+                findViewById<SwitchCompat>(R.id.swMetronome).isChecked = false
                 findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chordProgressions[chart][0]
                 displayBeat()
                 displayTime()
@@ -162,13 +169,13 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(CHART_KEY,chart)
-        outState.putInt(CHARTIDX_KEY,chartIdx)
+        outState.putInt(CHART_IDX_KEY,chartIdx)
         outState.putInt(BEAT_KEY,beat)
         outState.putInt(MEASURE_KEY,measure)
         outState.putInt(TIME_KEY,time)
 
         metronomeOn = false
-        findViewById<Switch>(R.id.swMetronome).isChecked = false
+        findViewById<SwitchCompat>(R.id.swMetronome).isChecked = false
         updateMetronome()
         updateClock()
     }
@@ -212,7 +219,7 @@ class MainActivity : AppCompatActivity() {
 
 
     // ----------------------------------------------------------------------------------------
-    // Control Listeners
+    // Widget Access/Listeners
 
     private fun invertDiagram() {
         cdDiagram.changeColorMode()
@@ -220,14 +227,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun clockReset() {
         time = 0
-        findViewById<TextView>(R.id.tvTime).text = "0:00:00"
+        findViewById<TextView>(R.id.tvTime).text = getString(R.string.time_zero)
     }
 
     private fun beatReset() {
         measure = 1
         beat = 1
         firstBeat = true
-        findViewById<TextView>(R.id.tvBeatClock).text = "$measure.$beat"
         initChart()
     }
 
@@ -241,21 +247,25 @@ class MainActivity : AppCompatActivity() {
         initChart()
     }
 
-    private fun skipChord() {
-        getNextChord()
-        skipChordFlag = true
-    }
-
     private fun metronomePlay() {
-        metronomeOn = findViewById<Switch>(R.id.swMetronome).isChecked
+        metronomeOn = findViewById<SwitchCompat>(R.id.swMetronome).isChecked
         firstBeat = true
         updateMetronome()
         updateClock()
     }
 
     private fun metronomeBPMSlide(value: Float) {
-        bpm = value
+        bpm = value.toInt()
         updateMetronome()
+    }
+
+    private fun displayBeat() {
+        findViewById<TextView>(R.id.tvBeatClock).text = getString(R.string.beat_format,measure,beat)
+    }
+
+    private fun displayTime() {
+        findViewById<TextView>(R.id.tvTime).text =
+            String.format("%d:%02d:%02d", time / 3600, time / 60, time % 60)
     }
 
     // ----------------------------------------------------------------------------------------
@@ -272,19 +282,10 @@ class MainActivity : AppCompatActivity() {
         getNextChord()
     }
 
-    private fun displayBeat() {
-        findViewById<TextView>(R.id.tvBeatClock).text = "$measure.$beat"
-    }
-
-    private fun displayTime() {
-        findViewById<TextView>(R.id.tvTime).text =
-            String.format("%d:%02d:%02d", time / 3600, time / 60, time % 60)
-    }
-
     private fun updateMetronome() {
         if(metronomeHandler.hasCallbacks(updateBeatTask)) metronomeHandler.removeCallbacks(updateBeatTask)
         if(metronomeOn) metronomeHandler.postDelayed(updateBeatTask, (60000f/bpm).toLong())
-        findViewById<TextView>(R.id.tvBPM).text = "${bpm.toInt()} BPM"
+        findViewById<TextView>(R.id.tvBPM).text = getString(R.string.bpm_format,bpm)
     }
 
     private fun clickMetronome(theOne: Boolean = false) {

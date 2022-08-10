@@ -1,9 +1,7 @@
 package com.slappyapps.chordtrainer
 
 import android.content.Context
-import android.content.res.Resources
 import android.graphics.*
-import android.util.Log
 import android.util.TypedValue
 import android.widget.ImageView
 import android.widget.TextView
@@ -16,73 +14,56 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
 
     val chords = Chords()
 
-    private val frets: Int = 5
-    private val stringWidths = arrayOf(24f, 18f, 14f, 12f, 10f, 8f)
-
+    // find the scale of the diagram based on the width of the ImageView it is being drawn in
     private val scale = iView.width/330f
-    private val fretsPitch = scale*50f
+    private val diagramPos = arrayOf(5.6f,0.3f).map { scale*it.dp2px }
 
-    private val stringOverflow = 10f*scale
-    private val stringHeight = frets * fretsPitch + stringOverflow
-    private val stringsPitch = scale*30f
-    private val stringsWidth = stringsPitch*5f
+    private val stringWidths = arrayOf(0.65f,0.50f,0.36f,0.26f,0.18f,0.13f).map { scale*it.dp2px }
 
-    private val dotRadius = scale*7f
+    // neck metrics
+    private val frets: Int = 5
+    private val fretsPitch = scale*18f.dp2px
+    private val stringOverflow = scale*3.6f.dp2px
+    private val stringLength = frets * fretsPitch + stringOverflow
+    private val stringsPitch = scale*11.5f.dp2px
+    private val neckWidth = stringsPitch*5f
+    private val dotRadius = scale*3f.dp2px
+    private val dotThickness = scale*0.2f.dp2px
+    private val nutThickness = scale*3f.dp2px
+    private val fretThickness = scale*0.4f.dp2px
 
-    private val noteRadius = scale*14f
+    private val fretboardRect = arrayOf(
+        diagramPos[0] + scale*24.7f.dp2px, diagramPos[1] + scale*17f.dp2px,
+        diagramPos[0] + scale*24.7f.dp2px + neckWidth, diagramPos[1] + scale*17f.dp2px + stringLength)
+
+    private val openStringTop = fretboardRect[1]
+
+    private val firstFretFontSize = scale*7f.sp2px
+    private val firstFretPos = arrayOf(
+        fretboardRect[2] + scale*9f.dp2px,
+        fretboardRect[1] + fretsPitch/2f + firstFretFontSize/2f)
+
+    // note metrics
+    private val noteRadius = scale*5.3f.dp2px
     private val noteFontSize = scale*6.5f.sp2px
     private val noteFontSizeSmall = scale*5f.sp2px
 
-    private val diagramPos = arrayOf(4f.dp + scale*15f, 8f.dp)
-
-    private val firstFretFontSize = scale*7f.sp2px
-    private val fretboardRect = arrayOf(
-        diagramPos[0] + scale*65f, diagramPos[1] + scale*45f,
-        diagramPos[0] + scale*65f + stringsWidth, diagramPos[1] + scale*45f + stringHeight)
-    private val firstFretPos = arrayOf(
-        fretboardRect[2] + 24f*scale,
-        fretboardRect[1] + fretsPitch/2f + firstFretFontSize/2f)
-    private val openStringTop = fretboardRect[1]
-
-    private var backgroundColor: Int
-    private var textColor: Int
+    private var backgroundColor = MaterialColors.getColor(iView, android.R.attr.colorBackground)
+    private var textColor = MaterialColors.getColor(iView, android.R.attr.textColorPrimary)
 
     private lateinit var lastDiagram:Triple<String,String,Int>
 
-
-    private val Float.dp: Float
-        get() = (this / Resources.getSystem().displayMetrics.density)
-
     private val Float.dp2px: Float
-        get() = (this * Resources.getSystem().displayMetrics.densityDpi/160f)
+        get() = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,this,context.resources.displayMetrics)
 
     private val Float.sp2px: Float
-        get() = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP,this,context.resources.displayMetrics)
-
-    init {
-        // get background and foreground colors
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.colorBackground, typedValue, true)
-        backgroundColor = typedValue.data
-
-        context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
-        textColor = typedValue.data
-
-        MaterialColors.getColor(iView, com.google.android.material.R.attr.colorOnPrimary)
-
-        Log.d("test","${1f.dp} ${1f.dp2px} $scale ${scale*18f} ${5f.sp2px}")
-    }
+        get() = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,this,context.resources.displayMetrics)
 
 
     fun changeColorMode() {
 
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.colorBackground, typedValue, true)
-        val bg = typedValue.data
-
-        context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
-        val fg = typedValue.data
+        val bg = MaterialColors.getColor(iView, android.R.attr.colorBackground)
+        val fg = MaterialColors.getColor(iView, android.R.attr.textColorPrimary)
 
         if(backgroundColor == bg) {
             backgroundColor = fg
@@ -95,7 +76,6 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
             tvTitle.setTextColor(fg)
             tvTitle.setBackgroundColor(bg)
         }
-
         diagram(lastDiagram)
     }
 
@@ -107,13 +87,12 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
         val paint = Paint()
         paint.isAntiAlias = true
         paint.style = Paint.Style.FILL
-        paint.strokeWidth = 1f
 
         val firstFret: Int = if (first_fret_in == 0) 1 else first_fret_in
 
         // clear area
         paint.color = backgroundColor
-        canvas.drawRect(0f,0f, iView.width.toFloat(), iView.height.toFloat(),paint)
+        canvas.drawRect(0f,0f,iView.width.toFloat(),iView.height.toFloat(),paint)
 
         // draw first fret line
         var x0: Float = fretboardRect[0]
@@ -125,12 +104,12 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
         paint.color = textColor
         if(firstFret == 1) {
             // nut
-            paint.strokeWidth = 60f.dp
+            paint.strokeWidth = nutThickness
             paint.strokeCap = Paint.Cap.SQUARE
             canvas.drawLine(x0,y,x1,y,paint)
         } else {
             // first fret offset line
-            paint.strokeWidth = 4f.dp
+            paint.strokeWidth = fretThickness
             paint.strokeCap = Paint.Cap.BUTT
             canvas.drawLine(x0,y,x1,y,paint)
 
@@ -149,8 +128,8 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
         if(firstFret != 1) y1 -= stringOverflow
 
         paint.strokeCap = Paint.Cap.BUTT
-        for(i in 0..5) {
-            paint.strokeWidth = stringWidths[i].dp
+        for(w in stringWidths) {
+            paint.strokeWidth = w
             canvas.drawLine(x, y0, x, y1, paint)
             x += stringsPitch
         }
@@ -161,21 +140,21 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
         y = fretboardRect[1] + fretsPitch
 
         paint.strokeCap = Paint.Cap.BUTT
-        paint.strokeWidth = 4f.dp
+        paint.strokeWidth = fretThickness
         for(i in 0 until frets) {
             canvas.drawLine(x0, y, x1, y, paint)
             y += fretsPitch
         }
 
         // dots
-        x = (fretboardRect[0] + fretboardRect[2]) / 2
-        y0 = fretboardRect[1] + fretsPitch/2
+        x = (fretboardRect[0] + fretboardRect[2])/2f
+        y0 = fretboardRect[1] + fretsPitch/2f
         val dottedFrets = arrayOf(3,5,7,9,15,17,19,21)
 
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 6f.dp
+        paint.strokeWidth = dotThickness
         for(fret in dottedFrets) {
-            y = y0 + fretsPitch * (fret - firstFret)
+            y = y0 + fretsPitch * (fret-firstFret)
             if(y > fretboardRect[1] && y < fretboardRect[3])
                 canvas.drawCircle(x,y,dotRadius,paint)
         }
@@ -183,15 +162,15 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
         // 12th fret dots
         y = y0 + fretsPitch * (12 - firstFret)
         if(y > fretboardRect[1] && y < fretboardRect[3]) {
-            canvas.drawCircle(x - stringsPitch,y,dotRadius,paint)
-            canvas.drawCircle(x + stringsPitch,y,dotRadius,paint)
+            canvas.drawCircle(x -stringsPitch, y, dotRadius, paint)
+            canvas.drawCircle(x +stringsPitch, y, dotRadius, paint)
         }
 
         // print first fret offset if there is one
         paint.style = Paint.Style.FILL
         paint.textSize = firstFretFontSize
         if(firstFret != 1)
-            canvas.drawText(firstFretStr,firstFretPos[0],firstFretPos[1],paint)
+            canvas.drawText(firstFretStr, firstFretPos[0], firstFretPos[1], paint)
 
         iView.setImageBitmap(bitmap)
     }
@@ -207,14 +186,14 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
         val paint = Paint()
         paint.isAntiAlias = true
         paint.style = Paint.Style.FILL
-        paint.strokeWidth = 1f
 
         val x = fretboardRect[0] + stringsPitch*string
+        val textOffs = scale*1f.dp2px
         if(fret == -1) {    // 'X' string not played
             val y = openStringTop
             paint.textSize = noteFontSize
             paint.color = textColor
-            canvas.drawText("X",x-paint.measureText("X")/2f,y-paint.textSize/1.5f,paint)
+            canvas.drawText("X",x-paint.measureText("X")/2f,y-paint.textSize/2f-textOffs,paint)
         } else {
             val y = fretboardRect[1] + fretsPitch/2f + fretsPitch*(fret-1)
             paint.color = when(interval) {
@@ -225,8 +204,8 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
             canvas.drawCircle(x,y,noteRadius,paint)
             val txt: String = intervalAscii(interval)
             paint.textSize = if(txt.length < 3) noteFontSize else noteFontSizeSmall
-            paint.color = Color.WHITE   //backgroundColor
-            canvas.drawText(txt,x-paint.measureText(txt)/2f,y+paint.textSize.dp/1.1f,paint)
+            paint.color = Color.WHITE
+            canvas.drawText(txt,x-paint.measureText(txt)/2f,y+paint.textSize/2f-textOffs,paint)
         }
     }
 
@@ -269,6 +248,6 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
                     drawNote(canvas,string,fret + 1,interval)
         }
         iView.setImageBitmap(bitmap)
-        tvTitle.text = "$root$type -${rootString+1}"
+        tvTitle.text = context.resources.getString(R.string.chord_title_format,root,type,rootString+1)
     }
 }
