@@ -1,20 +1,18 @@
 package com.slappyapps.chordtrainer
 
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.view.View
+import android.view.*
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
 
 
@@ -23,19 +21,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var ivDiagram: ImageView
     private lateinit var cdDiagram: ChordDiagram
+    private lateinit var metronome: Metronome
     private var chart = 0
     private var chartIdx = 0
-    private var metronomeOn = false
-    private var measure = 0
     private var time = 0
-    private var beat = 0
-    private var firstBeat = true
-    private var skipChordFlag = false
-    private lateinit var metronomeClickA: MediaPlayer
-    private lateinit var metronomeClickB: MediaPlayer
-    private var bpm = 90
 
-    private lateinit var metronomeHandler: Handler
     private lateinit var clockHandler: Handler
 
 
@@ -67,12 +57,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     private companion object {
         const val CHART_KEY = "CHART_KEY"
         const val CHART_IDX_KEY = "CHART_IDX_KEY"
-        const val BEAT_KEY = "BEAT_KEY"
-        const val MEASURE_KEY = "MEASURE_KEY"
         const val TIME_KEY = "TIME_KEY"
     }
 
@@ -80,24 +67,19 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        metronome = Metronome(applicationContext,
+            findViewById(R.id.swMetronome),findViewById(R.id.bMute),
+            findViewById(R.id.tvBPM),findViewById(R.id.ivBeat),
+            findViewById(R.id.tvBeatClock), ::getNextChord)
+
         if(savedInstanceState != null) {
-            metronomeOn = false
             chart = savedInstanceState.getInt(CHART_KEY)
             chartIdx = savedInstanceState.getInt(CHART_IDX_KEY)
-            beat = savedInstanceState.getInt(BEAT_KEY)
-            measure = savedInstanceState.getInt(MEASURE_KEY)
             time = savedInstanceState.getInt(TIME_KEY)
+            metronome.restoreState(savedInstanceState)
         }
 
-        // init MediaPlayers for metronome
-        metronomeClickA = MediaPlayer.create(applicationContext, R.raw.bbclick)
-        metronomeClickA.setVolume(.9f,.9f)
-
-        metronomeClickB = MediaPlayer.create(applicationContext, R.raw.bbclick)
-        metronomeClickB.setVolume(.2f,.2f)
-
-        // instantiate thread handlers for metronome and clock counter
-        metronomeHandler = Handler(Looper.getMainLooper())
+        // instantiate thread handler for clock counter
         clockHandler = Handler(Looper.getMainLooper())
 
         ivDiagram = findViewById(R.id.ivDiagram)
@@ -108,8 +90,17 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvTime).setOnClickListener { clockReset() }
         findViewById<TextView>(R.id.tvBeatClock).setOnClickListener { beatReset() }
 
-        findViewById<Button>(R.id.bChartLeft).setOnClickListener { prevChart() }
-        findViewById<Button>(R.id.bChartRight).setOnClickListener { nextChart() }
+        findViewById<MaterialButton>(R.id.bMute).setOnClickListener { metronome.muteClicked() }
+
+        findViewById<Button>(R.id.bChartLeft).setOnClickListener {
+            chart = if(chart == 0) cdDiagram.chords.chordProgressions.size-1 else chart -1
+            initChart()
+        }
+
+        findViewById<Button>(R.id.bChartRight).setOnClickListener {
+            chart = if(chart >= (cdDiagram.chords.chordProgressions.size-1)) 0 else chart +1
+            initChart()
+        }
 
 
         // ----------------------------------------------------------------------------
@@ -145,9 +136,12 @@ class MainActivity : AppCompatActivity() {
 
         // ----------------------------------------------------------------------------
 
-        findViewById<Button>(R.id.swMetronome).setOnClickListener { metronomePlay() }
+        findViewById<Button>(R.id.swMetronome).setOnClickListener {
+            metronome.play()
+            updateClock()
+        }
         findViewById<Slider>(R.id.slBPM).addOnChangeListener { _, value, _ ->
-            metronomeBPMSlide(value)
+            metronome.updateBpm(value.toInt())
         }
 
         // immediately after creation, instantiate the chord diagram object
@@ -159,7 +153,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 findViewById<SwitchCompat>(R.id.swMetronome).isChecked = false
                 findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chordProgressions[chart][0]
-                displayBeat()
+                metronome.displayBeat()
                 displayTime()
                 getNextChord(redrawLastChord = true)
             }
@@ -170,13 +164,8 @@ class MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putInt(CHART_KEY,chart)
         outState.putInt(CHART_IDX_KEY,chartIdx)
-        outState.putInt(BEAT_KEY,beat)
-        outState.putInt(MEASURE_KEY,measure)
         outState.putInt(TIME_KEY,time)
-
-        metronomeOn = false
-        findViewById<SwitchCompat>(R.id.swMetronome).isChecked = false
-        updateMetronome()
+        metronome.saveState(outState)
         updateClock()
     }
 
@@ -184,33 +173,9 @@ class MainActivity : AppCompatActivity() {
     // ----------------------------------------------------------------------------------------
     // Thread Handlers
 
-    private val updateBeatTask = object : Runnable {
-        override fun run() {
-            if(metronomeOn) {
-                var theOne = false
-                if(skipChordFlag) {
-                    beat = 1
-                    skipChordFlag = false
-                    theOne = true
-                } else if(firstBeat) {
-                    firstBeat = false
-                    theOne = (beat == 1)
-                } else {
-                    if (updateBeat()) {
-                        getNextChord()
-                        theOne = true
-                    }
-                }
-                clickMetronome(theOne)
-                displayBeat()
-                metronomeHandler.postDelayed(this, (60000f / bpm).toLong())
-            }
-        }
-    }
-
     private val updateClockTask = object : Runnable {
         override fun run() {
-            if(!metronomeOn) return
+            if(!metronome.enabled) return
             clockHandler.postDelayed(this, 1000)
             displayTime()
             time += 1
@@ -231,36 +196,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun beatReset() {
-        measure = 1
-        beat = 1
-        firstBeat = true
+        metronome.beatReset()
         initChart()
-    }
-
-    private fun prevChart() {
-        chart = if(chart == 0) cdDiagram.chords.chordProgressions.size-1 else chart -1
-        initChart()
-    }
-
-    private fun nextChart() {
-        chart = if(chart >= (cdDiagram.chords.chordProgressions.size-1)) 0 else chart +1
-        initChart()
-    }
-
-    private fun metronomePlay() {
-        metronomeOn = findViewById<SwitchCompat>(R.id.swMetronome).isChecked
-        firstBeat = true
-        updateMetronome()
-        updateClock()
-    }
-
-    private fun metronomeBPMSlide(value: Float) {
-        bpm = value.toInt()
-        updateMetronome()
-    }
-
-    private fun displayBeat() {
-        findViewById<TextView>(R.id.tvBeatClock).text = getString(R.string.beat_format,measure,beat)
     }
 
     private fun displayTime() {
@@ -274,41 +211,18 @@ class MainActivity : AppCompatActivity() {
     private fun initChart() {
         findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chordProgressions[chart][0]
         chartIdx = 1
-        skipChordFlag = false
-        beat = 1
-        measure = 1
-        firstBeat = true
-        displayBeat()
+        metronome.skipChordFlag = false
+        metronome.beatReset()
+        metronome.displayBeat()
         getNextChord()
-    }
-
-    private fun updateMetronome() {
-        if(metronomeHandler.hasCallbacks(updateBeatTask)) metronomeHandler.removeCallbacks(updateBeatTask)
-        if(metronomeOn) metronomeHandler.postDelayed(updateBeatTask, (60000f/bpm).toLong())
-        findViewById<TextView>(R.id.tvBPM).text = getString(R.string.bpm_format,bpm)
-    }
-
-    private fun clickMetronome(theOne: Boolean = false) {
-        if(metronomeClickA.isPlaying) metronomeClickA.stop()
-        if(metronomeClickB.isPlaying) metronomeClickB.stop()
-        if(theOne)
-            metronomeClickA.start()
-        else
-            metronomeClickB.start()
-    }
-
-    private fun updateBeat(): Boolean {
-        beat = if (beat == 4) 1 else beat + 1
-        measure += if (beat == 1) 1 else 0
-        return (beat == 1)
     }
 
     private fun updateClock() {
         if(clockHandler.hasCallbacks(updateClockTask)) clockHandler.removeCallbacks(updateClockTask)
-        if(metronomeOn) clockHandler.postDelayed(updateClockTask, 1000)
+        if(metronome.enabled) clockHandler.postDelayed(updateClockTask, 1000)
     }
 
-    private fun getNextChord(redrawLastChord: Boolean = false) {
+    fun getNextChord(redrawLastChord: Boolean = false) {
         val rtp: Triple<String,String,Int>
 
         if(chart == -1)

@@ -8,4 +8,8 @@
     <string name="bpm_format">%1$d BPM</string>
     <string name="default_bpm">90 BPM</string>
     <string name="chord_title_format">%1$s%2$s -%3$d</string>
+    <string name="tvChordTitle_name">tvChordTitle</string>
+    <string name="ivBeat_description">Beat indicator</string>
+    <string name="tvChart_name">tvChart</string>
+    <string name="tvChordList_name">tvChordList</string>
 </resources>

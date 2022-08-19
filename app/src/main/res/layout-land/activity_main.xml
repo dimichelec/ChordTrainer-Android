@@ -25,14 +25,14 @@
                 android:gravity="bottom"
                 android:paddingStart="8sp"
                 android:paddingEnd="8sp"
-                android:text="tvChordTitle"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="@string/tvChordTitle_name" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -52,7 +52,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toTopOf="@+id/clChartBar"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/bMute"
             app:layout_constraintStart_toEndOf="@+id/ivDiagram"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -73,14 +73,45 @@
                 android:id="@+id/tvBeatClock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/beat_one"
                 android:textSize="40sp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/ivBeat"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <ImageView
+                android:id="@+id/ivBeat"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:contentDescription="@string/ivBeat_description"
+                android:visibility="invisible"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@android:drawable/presence_invisible" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bMute"
+            style="@android:style/Widget.Material.Button.Toggle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:checkable="true"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:rotation="0"
+            android:scaleX="1.15"
+            android:scaleY="1.15"
+            android:soundEffectsEnabled="false"
+            app:icon="@drawable/ic_speaker_24"
+            app:layout_constraintBottom_toBottomOf="@+id/clTimeLine"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/clTimeLine"
+            tools:ignore="SpeakableTextPresentCheck" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/clChartBar"
@@ -96,14 +127,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="tvChart"
                 android:textAppearance="@style/TextAppearance.AppCompat.Body1"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="24sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/bChartLeft"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="@string/tvChart_name"/>
 
             <Button
                 android:id="@+id/bChartLeft"
@@ -148,14 +179,14 @@
             android:layout_marginStart="5dp"
             android:layout_marginEnd="5dp"
             android:singleLine="true"
-            android:text="tvChordList"
             android:textAppearance="@style/TextAppearance.AppCompat.Large"
             android:textColor="?android:attr/textColorTertiary"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toTopOf="@+id/clMetronome"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/ivDiagram" />
+            app:layout_constraintStart_toEndOf="@+id/ivDiagram"
+            tools:text="@string/tvChordList_name"/>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/clMetronome"

@@ -3,6 +3,15 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.1855" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable/ic_baseline_1x_mobiledata_24.xml" value="0.1855" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable/ic_launcher_background.xml" value="0.1855" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable/ic_mute_24.xml" value="0.3" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable/ic_round_volume_mute_24.xml" value="0.1855" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable/ic_speaker_24.xml" value="0.1855" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/drawable/vd_vector.xml" value="0.1855" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/layout-land/activity_main.xml" value="0.2796875" />
+        <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer-Android/app/src/main/res/layout/activity_main.xml" value="0.4128546612623046" />
         <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer/app/src/main/res/drawable/round_outline.xml" value="0.1" />
         <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer/app/src/main/res/layout-land/activity_main.xml" value="0.33" />
         <entry key="..\:/Users/dimic/AndroidStudioProjects/ChordTrainer/app/src/main/res/layout/activity_main.xml" value="0.33" />
