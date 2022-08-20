@@ -22,8 +22,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ivDiagram: ImageView
     private lateinit var cdDiagram: ChordDiagram
     private lateinit var metronome: Metronome
-    private var chart = 0
-    private var chartIdx = 0
     private var time = 0
 
     private lateinit var clockHandler: Handler
@@ -57,10 +55,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+    var tmpChart = 0
+    var tmpChartIdx = 0
+
     private companion object {
+        const val TIME_KEY = "TIME_KEY"
         const val CHART_KEY = "CHART_KEY"
         const val CHART_IDX_KEY = "CHART_IDX_KEY"
-        const val TIME_KEY = "TIME_KEY"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,9 +75,9 @@ class MainActivity : AppCompatActivity() {
             findViewById(R.id.tvBeatClock), ::getNextChord)
 
         if(savedInstanceState != null) {
-            chart = savedInstanceState.getInt(CHART_KEY)
-            chartIdx = savedInstanceState.getInt(CHART_IDX_KEY)
             time = savedInstanceState.getInt(TIME_KEY)
+            tmpChart = savedInstanceState.getInt(CHART_KEY)
+            tmpChartIdx = savedInstanceState.getInt(CHART_IDX_KEY)
             metronome.restoreState(savedInstanceState)
         }
 
@@ -93,12 +95,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.bMute).setOnClickListener { metronome.muteClicked() }
 
         findViewById<Button>(R.id.bChartLeft).setOnClickListener {
-            chart = if(chart == 0) cdDiagram.chords.chordProgressions.size-1 else chart -1
+            cdDiagram.chords.prevChart()
             initChart()
         }
 
         findViewById<Button>(R.id.bChartRight).setOnClickListener {
-            chart = if(chart >= (cdDiagram.chords.chordProgressions.size-1)) 0 else chart +1
+            cdDiagram.chords.nextChart()
             initChart()
         }
 
@@ -146,13 +148,13 @@ class MainActivity : AppCompatActivity() {
 
         // immediately after creation, instantiate the chord diagram object
         window.decorView.post {
-            cdDiagram = ChordDiagram(this, ivDiagram, findViewById(R.id.tvChordTitle))
+            cdDiagram = ChordDiagram(this, ivDiagram, findViewById(R.id.tvChordTitle), tmpChart, tmpChartIdx)
             if(savedInstanceState == null) {
                 cdDiagram.diagram("C", "M7", 0)
                 initChart()
             } else {
                 findViewById<SwitchCompat>(R.id.swMetronome).isChecked = false
-                findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chordProgressions[chart][0]
+                findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chartName
                 metronome.displayBeat()
                 displayTime()
                 getNextChord(redrawLastChord = true)
@@ -162,9 +164,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putInt(CHART_KEY,chart)
-        outState.putInt(CHART_IDX_KEY,chartIdx)
         outState.putInt(TIME_KEY,time)
+        outState.putInt(CHART_KEY,cdDiagram.chords.chart)
+        outState.putInt(CHART_IDX_KEY,cdDiagram.chords.chartIdx)
         metronome.saveState(outState)
         updateClock()
     }
@@ -209,8 +211,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun initChart() {
-        findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chordProgressions[chart][0]
-        chartIdx = 1
+        findViewById<TextView>(R.id.tvChart).text = cdDiagram.chords.chartName
+        cdDiagram.chords.chartIdx = 1
         metronome.skipChordFlag = false
         metronome.beatReset()
         metronome.displayBeat()
@@ -225,24 +227,20 @@ class MainActivity : AppCompatActivity() {
     fun getNextChord(redrawLastChord: Boolean = false) {
         val rtp: Triple<String,String,Int>
 
-        if(chart == -1)
+        if(cdDiagram.chords.chart == -1)
             rtp = cdDiagram.chords.getRandomChord()
         else {
-            if(redrawLastChord) {
-                chartIdx -= 1
-                if (chartIdx == 0) chartIdx = cdDiagram.chords.chordProgressions[chart].size-1
-            }
-            rtp = cdDiagram.chords.chordToRTP(chart,chartIdx)
-            chartIdx += 1
-            if (chartIdx >= cdDiagram.chords.chordProgressions[chart].size)
-                chartIdx = 1
+            if(redrawLastChord)
+                cdDiagram.chords.prevChord()
+            rtp = cdDiagram.chords.chordToRTP()
+            cdDiagram.chords.nextChord()
         }
 
         cdDiagram.diagram(rtp)
 
         val a = "${rtp.first}${rtp.second}"
-        var b = if (chartIdx == 1) "" else "   " + cdDiagram.chords.chartList(chart, chartIdx-1)
-        val c = cdDiagram.chords.chartList(chart)
+        var b = if (cdDiagram.chords.chartIdx == 1) "" else "   " + cdDiagram.chords.chartList(-1)
+        val c = cdDiagram.chords.chartList()
         while(b.length < 200) b += "  |  $c"
 
         // make the chord chart string with the current chord highlighted

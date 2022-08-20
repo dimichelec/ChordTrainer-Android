@@ -2,7 +2,7 @@ package com.slappyapps.chordtrainer
 
 import kotlin.random.Random
 
-class Chords {
+class Chords(var chart: Int = 0, var chartIdx: Int = 0) {
 
    // the standard tuning 3 bass strings of a guitar
     private val bassTuning = arrayOf("E","A","D")
@@ -85,7 +85,7 @@ class Chords {
         )
     )
 
-    val chordProgressions = arrayOf(
+    private val chordProgressions = arrayOf(
         arrayOf("Major 7s Exercise",       "GM7-1","CM7-2","FM7-3","GM7-3","DM7-2","AM7-1"),
         arrayOf("Minor 7s Exercise",       "Gm7-1","Cm7-2","Fm7-3","Gm7-3","Dm7-2","Am7-1"),
         arrayOf("Dominant 7s Exercise",    "G7-1","C7-2","F7-3","G7-3","D7-2","A7-1"),
@@ -100,6 +100,26 @@ class Chords {
         arrayOf("Wild Horses",             "Bm","G","Am","C","D","F"),
         arrayOf("Test",                    "B11","Gm11","AM11","Em7")
     )
+
+    val chartName: String
+        get() = chordProgressions[chart][0]
+
+
+    fun prevChart() {
+        chart = if(chart == 0) chordProgressions.size-1 else chart-1
+    }
+
+    fun nextChart() {
+        chart = if(chart >= (chordProgressions.size-1)) 0 else chart+1
+    }
+
+    fun prevChord() {
+        chartIdx = if(chartIdx == 1) chordProgressions[chart].size-1 else chartIdx-1
+    }
+
+    fun nextChord() {
+        chartIdx = if(chartIdx >= (chordProgressions[chart].size-1)) 1 else chartIdx+1
+    }
 
     // given the root note and chord type, return a chord from our formulas played
     // in lowest neck position
@@ -166,9 +186,11 @@ class Chords {
             Random.nextInt(1,3))
     }
 
-    fun chartList(chart: Int, index: Int = 0): String {
+    fun chartList(offset: Int = 0): String {
         var seq = ""
         val chords = this.chordProgressions[chart]
+        val index = if(offset < 0) chartIdx + offset else offset
+
         chords.sliceArray(index+1 until chords.size).forEach { chord ->
             val i = chord.indexOf("-")
             seq += "${if(i != -1) chord.substring(0,i) else chord}   "
@@ -176,8 +198,8 @@ class Chords {
         return seq.substring(0,seq.length-3)
     }
 
-    fun chordToRTP(chart: Int, index: Int): Triple<String,String,Int> {
-        var chord = this.chordProgressions[chart][index]
+    fun chordToRTP(iChart: Int=chart, index: Int=chartIdx): Triple<String,String,Int> {
+        var chord = this.chordProgressions[iChart][index]
         var position = 0
         val i = chord.indexOf("-")
         if(i != -1) {

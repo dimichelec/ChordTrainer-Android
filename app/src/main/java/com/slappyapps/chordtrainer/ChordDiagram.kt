@@ -10,9 +10,10 @@ import com.google.android.material.color.MaterialColors
 import kotlin.math.abs
 
 
-class ChordDiagram(private val context: Context, private val iView: ImageView, private val tvTitle: TextView) {
+class ChordDiagram(private val context: Context, private val iView: ImageView,
+                   private val tvTitle: TextView, chart: Int, chartIndex: Int) {
 
-    val chords = Chords()
+    val chords = Chords(chart, chartIndex)
 
     // find the scale of the diagram based on the width of the ImageView it is being drawn in
     private val scale = iView.width/330f
@@ -58,7 +59,6 @@ class ChordDiagram(private val context: Context, private val iView: ImageView, p
 
     private val Float.sp2px: Float
         get() = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,this,context.resources.displayMetrics)
-
 
     fun changeColorMode() {
 

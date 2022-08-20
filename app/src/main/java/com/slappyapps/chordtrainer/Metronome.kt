@@ -50,7 +50,7 @@ class Metronome(private var applicationContext: Context,
         enabled = false
         measure = bundle!!.getInt(MEASURE_KEY)
         beat = bundle.getInt(BEAT_KEY)
-        mute = bundle.getBoolean(MUTE_KEY) == true
+        mute = bundle.getBoolean(MUTE_KEY)
         bMute.isChecked = mute
         muteIcon()
     }
